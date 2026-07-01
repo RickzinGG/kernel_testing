@@ -13,7 +13,7 @@ jobs:
     - name: Instalar Dependências de Compilação
       run: |
         sudo apt-get update
-        sudo apt-get install -y bc build-essential libelf-dev ccache libssl-dev libgmp-dev libmpfr-dev libmpc-dev textinfo libncurses5-dev unzip libxyz-dev
+        sudo apt-get install -y bc build-essential libelf-dev ccache libssl-dev libgmp-dev libmpfr-dev libmpc-dev texinfo libncurses5-dev unzip bison flex
 
     - name: Baixar Google Android Clang 12.0.5
       run: |
@@ -33,7 +33,7 @@ jobs:
         export CLANG_TRIPLE=aarch64-linux-gnu-
         
         # Mescla a config base GKI com os fragmentos específicos do Moto G200 (xpeng)
-        make O=out lahaina_GKI.config vendor/ext_config/moto-lahaina.config vendor/moto-lahaina-xpeng.config
+        make O=out lahaina_GKI.config vendor/moto-lahaina.config vendor/moto-lahaina-xpeng.config
         
         # Inicia a compilação usando todos os núcleos da máquina virtual
         make -j$(nproc --all) O=out \
