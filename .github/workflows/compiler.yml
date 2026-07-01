@@ -1,7 +1,7 @@
-name: Compilar Kernel e Módulos (Moto G200 xpeng)
+name: Criar Defconfig e Compilar Kernel (Moto G200)
 
 on:
-  workflow_dispatch: # Permite ativar a compilação manualmente com um clique
+  workflow_dispatch: # Ativação manual
 
 jobs:
   build:
@@ -17,15 +17,12 @@ jobs:
 
     - name: Baixar Google Android Clang 12.0.5 via Sparse-Checkout
       run: |
-        # Clona apenas os metadados do repositório oficial da Google de forma ultra-rápida
         git clone --depth 1 --filter=blob:none --sparse https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 toolchain
         cd toolchain
-        # Baixa exclusivamente a pasta do compilador que a sua source precisa
         git sparse-checkout set clang-r416183b
-        # Adiciona o executável do Clang nas variáveis de ambiente do GitHub
         echo "$(pwd)/clang-r416183b/bin" >> $GITHUB_PATH
 
-    - name: Compilar o Kernel e Módulos Wi-Fi
+    - name: Gerar lahaina_qgki_defconfig e Compilar
       run: |
         export ARCH=arm64
         export SUBARCH=arm64
@@ -33,27 +30,46 @@ jobs:
         export CC=clang
         export CLANG_TRIPLE=aarch64-linux-gnu-
         
-        # Mescla a config base GKI com os fragmentos específicos do Moto G200 (xpeng)
-        make O=out lahaina_GKI.config vendor/moto-lahaina.config vendor/moto-lahaina-xpeng.config
+        mkdir -p out
         
-        # Inicia a compilação usando todos os núcleos da máquina virtual
+        # PASSO 1: Mesclar os fragmentos originais na pasta temporária
+        ARCH=arm64 scripts/kconfig/merge_config.sh -O out \
+          arch/arm64/configs/lahaina_GKI.config \
+          arch/arm64/configs/vendor/moto-lahaina.config \
+          arch/arm64/configs/vendor/moto-lahaina-xpeng.config
+        
+        # PASSO 2: Minimizar e transformar o resultado em um defconfig limpo (gera out/defconfig)
+        make O=out CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- savedefconfig
+        
+        # PASSO 3: Copiar o defconfig gerado para a árvore oficial com o seu novo nome customizado
+        cp out/defconfig arch/arm64/configs/lahaina_qgki_defconfig
+        
+        # PASSO 4: Limpar a pasta out antiga para garantir uma build 100% limpa usando o novo defconfig
+        rm -rf out && mkdir -p out
+        
+        # PASSO 5: Chamar a engine de build usando o SEU novo defconfig criado
+        make O=out CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- lahaina_qgki_defconfig
+        
+        # PASSO 6: Compilar o kernel e os módulos
         make -j$(nproc --all) O=out \
                       CC=clang \
                       CLANG_TRIPLE=aarch64-linux-gnu- \
                       CROSS_COMPILE=aarch64-linux-gnu-
 
-    - name: Coletar Kernel e Arquivos de Wi-Fi (.ko)
+    - name: Coletar Kernel, Módulos e o Novo Defconfig
       run: |
         mkdir artifact
-        # Copia a imagem do kernel gerada
+        # Salva o seu novo arquivo de configuração unificado para você guardar
+        cp arch/arm64/configs/lahaina_qgki_defconfig artifact/
+        # Copia o kernel gerado
         cp out/arch/arm64/boot/Image* artifact/ 2>/dev/null || true
         cp out/arch/arm64/boot/boot.img artifact/ 2>/dev/null || true
-        # Varre a pasta de saída procurando e copiando todos os módulos de Wi-Fi compilados (.ko)
+        # Copia os módulos .ko do Wi-Fi
         find out/ -name "*.ko" -exec cp {} artifact/ \;
 
     - name: Enviar Arquivos para Download
       uses: actions/upload-artifact@v4
       with:
-        name: Kernel-e-Modulos-Wifi-G200
+        name: Build-Custom-Defconfig-MotoG200
         path: artifact/*
         
