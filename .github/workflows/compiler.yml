@@ -1,1 +1,58 @@
+name: Compilar Kernel e Módulos (Moto G200 xpeng)
 
+on:
+  workflow_dispatch: # Permite ativar a compilação manualmente com um clique
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Baixar Código Fonte
+      uses: actions/checkout@v4
+
+    - name: Instalar Dependências de Compilação
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bc build-essential libelf-dev ccache libssl-dev libgmp-dev libmpfr-dev libmpc-dev textinfo libncurses5-dev unzip libxyz-dev
+
+    - name: Baixar Google Android Clang 12.0.5
+      run: |
+        mkdir clang
+        cd clang
+        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r416183b.tar.gz
+        tar -xf clang-r416183b.tar.gz
+        rm clang-r416183b.tar.gz
+        echo "$(pwd)/bin" >> $GITHUB_PATH
+
+    - name: Compilar o Kernel e Módulos Wi-Fi
+      run: |
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export CC=clang
+        export CLANG_TRIPLE=aarch64-linux-gnu-
+        
+        # Mescla a config base GKI com os fragmentos específicos do Moto G200 (xpeng)
+        make O=out lahaina_GKI.config vendor/moto-lahaina.config vendor/moto-lahaina-xpeng.config
+        
+        # Inicia a compilação usando todos os núcleos da máquina virtual
+        make -j$(nproc --all) O=out \
+                      CC=clang \
+                      CLANG_TRIPLE=aarch64-linux-gnu- \
+                      CROSS_COMPILE=aarch64-linux-gnu-
+
+    - name: Coletar Kernel e Arquivos de Wi-Fi (.ko)
+      run: |
+        mkdir artifact
+        # Copia a imagem do kernel gerada
+        cp out/arch/arm64/boot/Image* artifact/ 2>/dev/null || true
+        cp out/arch/arm64/boot/boot.img artifact/ 2>/dev/null || true
+        # Varre a pasta de saída procurando e copiando todos os módulos de Wi-Fi compilados (.ko)
+        find out/ -name "*.ko" -exec cp {} artifact/ \;
+
+    - name: Enviar Arquivos para Download
+      uses: actions/upload-artifact@v4
+      with:
+        name: Kernel-e-Modulos-Wifi-G200
+        path: artifact/*
+        
