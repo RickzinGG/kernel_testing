@@ -32,22 +32,22 @@ jobs:
         
         mkdir -p out
         
-        # PASSO 1: Mesclar os fragmentos originais na pasta temporária
+        # PASSO 1: Mesclar os fragmentos originais (com as subpastas corretas)
         ARCH=arm64 scripts/kconfig/merge_config.sh -O out \
-          arch/arm64/configs/lahaina_GKI.config \
-          arch/arm64/configs/vendor/moto-lahaina.config \
-          arch/arm64/configs/vendor/moto-lahaina-xpeng.config
+          arch/arm64/configs/vendor/lahaina_GKI.config \
+          arch/arm64/configs/vendor/ext_config/moto-lahaina.config \
+          arch/arm64/configs/vendor/ext_config/moto-lahaina-xpeng.config
         
-        # PASSO 2: Minimizar e transformar o resultado em um defconfig limpo (gera out/defconfig)
+        # PASSO 2: Minimizar e transformar o resultado em um defconfig limpo
         make O=out CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- savedefconfig
         
-        # PASSO 3: Copiar o defconfig gerado para a árvore oficial com o seu novo nome customizado
+        # PASSO 3: Copiar o defconfig gerado para a raiz de configs do kernel
         cp out/defconfig arch/arm64/configs/lahaina_qgki_defconfig
         
-        # PASSO 4: Limpar a pasta out antiga para garantir uma build 100% limpa usando o novo defconfig
+        # PASSO 4: Limpar a pasta out antiga para garantir uma build 100% limpa
         rm -rf out && mkdir -p out
         
-        # PASSO 5: Chamar a engine de build usando o SEU novo defconfig criado
+        # PASSO 5: Chamar o Kconfig usando o SEU novo defconfig criado direto na raiz
         make O=out CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- lahaina_qgki_defconfig
         
         # PASSO 6: Compilar o kernel e os módulos
@@ -63,7 +63,7 @@ jobs:
         cp arch/arm64/configs/lahaina_qgki_defconfig artifact/
         # Copia o kernel gerado
         cp out/arch/arm64/boot/Image* artifact/ 2>/dev/null || true
-        cp out/arch/arm64/boot/boot.img artifact/ 2>/dev/null || true
+        cp out/arch/compilacao/boot/boot.img artifact/ 2>/dev/null || true
         # Copia os módulos .ko do Wi-Fi
         find out/ -name "*.ko" -exec cp {} artifact/ \;
 
