@@ -33,7 +33,7 @@ jobs:
         export CLANG_TRIPLE=aarch64-linux-gnu-
         
         # Mescla a config base GKI com os fragmentos específicos do Moto G200 (xpeng)
-        make O=out lahaina_GKI.config vendor/moto-lahaina.config vendor/moto-lahaina-xpeng.config
+        make O=out lahaina_GKI.config vendor/ext_config/moto-lahaina.config vendor/moto-lahaina-xpeng.config
         
         # Inicia a compilação usando todos os núcleos da máquina virtual
         make -j$(nproc --all) O=out \
