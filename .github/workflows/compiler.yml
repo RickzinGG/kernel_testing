@@ -13,7 +13,8 @@ jobs:
     - name: Instalar Dependências de Compilação
       run: |
         sudo apt-get update
-        sudo apt-get install -y bc build-essential libelf-dev ccache libssl-dev libgmp-dev libmpfr-dev libmpc-dev texinfo libncurses5-dev unzip bison flex
+        # CORREÇÃO: Adicionado binutils-aarch64-linux-gnu para fornecer o linker 'aarch64-linux-gnu-ld'
+        sudo apt-get install -y bc build-essential libelf-dev ccache libssl-dev libgmp-dev libmpfr-dev libmpc-dev texinfo libncurses5-dev unzip bison flex binutils-aarch64-linux-gnu
 
     - name: Baixar Google Android Clang 12.0.5 via Sparse-Checkout
       run: |
@@ -32,7 +33,7 @@ jobs:
         
         mkdir -p out
         
-        # PASSO 1: Mesclar os fragmentos originais (com as subpastas corretas)
+        # PASSO 1: Mesclar os fragmentos originais
         ARCH=arm64 scripts/kconfig/merge_config.sh -O out \
           arch/arm64/configs/vendor/lahaina_GKI.config \
           arch/arm64/configs/vendor/ext_config/moto-lahaina.config \
@@ -61,9 +62,9 @@ jobs:
         mkdir artifact
         # Salva o seu novo arquivo de configuração unificado para você guardar
         cp arch/arm64/configs/lahaina_qgki_defconfig artifact/
-        # Copia o kernel gerado
+        # Copia o kernel gerado (CORREÇÃO: caminho corrigido de 'compilacao' para 'arm64')
         cp out/arch/arm64/boot/Image* artifact/ 2>/dev/null || true
-        cp out/arch/compilacao/boot/boot.img artifact/ 2>/dev/null || true
+        cp out/arch/arm64/boot/boot.img artifact/ 2>/dev/null || true
         # Copia os módulos .ko do Wi-Fi
         find out/ -name "*.ko" -exec cp {} artifact/ \;
 
