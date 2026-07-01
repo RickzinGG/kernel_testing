@@ -15,15 +15,15 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y bc build-essential libelf-dev ccache libssl-dev libgmp-dev libmpfr-dev libmpc-dev texinfo libncurses5-dev unzip bison flex
 
-    - name: Baixar Google Android Clang 12.0.5
+    - name: Baixar Google Android Clang 12.0.5 via Sparse-Checkout
       run: |
-        mkdir clang
-        cd clang
-        # CORREÇÃO: Alterado de refs/heads/main para master
-        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/master/clang-r416183b.tar.gz
-        tar -xf clang-r416183b.tar.gz
-        rm clang-r416183b.tar.gz
-        echo "$(pwd)/bin" >> $GITHUB_PATH
+        # Clona apenas os metadados do repositório oficial da Google de forma ultra-rápida
+        git clone --depth 1 --filter=blob:none --sparse https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 toolchain
+        cd toolchain
+        # Baixa exclusivamente a pasta do compilador que a sua source precisa
+        git sparse-checkout set clang-r416183b
+        # Adiciona o executável do Clang nas variáveis de ambiente do GitHub
+        echo "$(pwd)/clang-r416183b/bin" >> $GITHUB_PATH
 
     - name: Compilar o Kernel e Módulos Wi-Fi
       run: |
